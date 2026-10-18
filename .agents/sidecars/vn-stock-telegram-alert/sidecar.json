@@ -1,0 +1,27 @@
+{
+  "builtin": "schedule",
+  "args": [
+    "CRON_TZ=Asia/Ho_Chi_Minh 30 11,15 * * 1-5",
+    "agentapi",
+    "new-conversation",
+    "--",
+    "Chạy lệnh `powershell -ExecutionPolicy Bypass -File \"e:\\Stock\\TradingAgents-main\\scripts\\daily_stock_alert.ps1\"` tại thư mục `e:\\Stock\\TradingAgents-main` để quét 10 cổ phiếu mục tiêu có giá <= 20.000đ trên sàn HOSE (KDH, TPB, MBB, HSG, SSI, VCI, SZC, DBC, HHV, VCG), lưu báo cáo vào `e:\\Stock\\TradingAgents-main\\reports\\latest_alert.md` và gửi thông báo về Telegram qua `TELEGRAM_BOT_TOKEN` và `TELEGRAM_CHAT_ID` trong `.env`. Tóm tắt ngắn gọn kết quả các mã đang ở vùng mua đẹp cho người dùng."
+  ],
+  "restart_policy": "always",
+  "display_name": "Cảnh Báo Điểm Mua Cổ Phiếu Qua Telegram",
+  "description": "Tự động quét 10 cổ phiếu mục tiêu (<= 20.000đ) vào 11:30 và 15:30 (Thứ Hai - Thứ Sáu, giờ Việt Nam) để báo mã lọt vùng giá mua đẹp và gửi thông báo qua Telegram.",
+  "agent_permissions": {
+    "workspace_uris": [
+      "file:///e:/Stock/TradingAgents-main"
+    ],
+    "access_grants": [
+      "command(powershell -ExecutionPolicy Bypass -File)",
+      "read_file(e:/Stock/TradingAgents-main/.env)",
+      "read_file(e:/Stock/TradingAgents-main/scripts/daily_stock_alert.ps1)",
+      "write_file(e:/Stock/TradingAgents-main/reports)",
+      "read_url(query1.finance.yahoo.com)",
+      "read_url(api.telegram.org)"
+    ]
+  }
+}
+
