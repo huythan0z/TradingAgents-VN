@@ -1,4 +1,4 @@
-[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
+﻿[Console]::OutputEncoding = [System.Text.Encoding]::UTF8
 
 $envPath = Join-Path $PSScriptRoot "..\.env"
 $botToken = $env:TELEGRAM_BOT_TOKEN
@@ -18,21 +18,29 @@ if (Test-Path $envPath) {
 }
 
 $watchlist = @(
-    @{ Ticker = "KDH"; Sector = "Bat dong san"; BuyLow = 13700; BuyHigh = 14100; Target = 15500; StopLoss = 13000 },
-    @{ Ticker = "TPB"; Sector = "Ngan hang";    BuyLow = 11700; BuyHigh = 12000; Target = 13200; StopLoss = 11200 },
-    @{ Ticker = "MBB"; Sector = "Ngan hang";    BuyLow = 19300; BuyHigh = 19700; Target = 21200; StopLoss = 18500 },
-    @{ Ticker = "HSG"; Sector = "Thep/Ton ma";  BuyLow = 10000; BuyHigh = 10350; Target = 11800; StopLoss = 9500  },
-    @{ Ticker = "SSI"; Sector = "Chung khoan";  BuyLow = 18800; BuyHigh = 19400; Target = 21000; StopLoss = 18000 },
-    @{ Ticker = "VCI"; Sector = "Chung khoan";  BuyLow = 18400; BuyHigh = 18900; Target = 20600; StopLoss = 17800 },
-    @{ Ticker = "SZC"; Sector = "BDS KCN";      BuyLow = 16900; BuyHigh = 17350; Target = 18800; StopLoss = 16100 },
-    @{ Ticker = "DBC"; Sector = "Nong nghiep";  BuyLow = 15300; BuyHigh = 15650; Target = 17200; StopLoss = 14700 },
-    @{ Ticker = "HHV"; Sector = "Dau tu cong";  BuyLow = 9100;  BuyHigh = 9400;  Target = 10500; StopLoss = 8600  },
-    @{ Ticker = "VCG"; Sector = "Xay dung/DTC"; BuyLow = 14300; BuyHigh = 14800; Target = 16500; StopLoss = 13800 }
+    @{ Ticker = "KDH"; Sector = "Bất động sản";   BuyLow = 13700; BuyHigh = 14100; Target = 15500; StopLoss = 13000 },
+    @{ Ticker = "TPB"; Sector = "Ngân hàng";      BuyLow = 11700; BuyHigh = 12000; Target = 13200; StopLoss = 11200 },
+    @{ Ticker = "MBB"; Sector = "Ngân hàng";      BuyLow = 19300; BuyHigh = 19700; Target = 21200; StopLoss = 18500 },
+    @{ Ticker = "HSG"; Sector = "Thép / Tôn mạ";  BuyLow = 10000; BuyHigh = 10350; Target = 11800; StopLoss = 9500  },
+    @{ Ticker = "SSI"; Sector = "Chứng khoán";    BuyLow = 18800; BuyHigh = 19400; Target = 21000; StopLoss = 18000 },
+    @{ Ticker = "VCI"; Sector = "Chứng khoán";    BuyLow = 18400; BuyHigh = 18900; Target = 20600; StopLoss = 17800 },
+    @{ Ticker = "SZC"; Sector = "BĐS KCN";        BuyLow = 16900; BuyHigh = 17350; Target = 18800; StopLoss = 16100 },
+    @{ Ticker = "DBC"; Sector = "Nông nghiệp";    BuyLow = 15300; BuyHigh = 15650; Target = 17200; StopLoss = 14700 },
+    @{ Ticker = "HHV"; Sector = "Đầu tư công";    BuyLow = 9100;  BuyHigh = 9400;  Target = 10500; StopLoss = 8600  },
+    @{ Ticker = "VCG"; Sector = "Xây dựng / ĐTC"; BuyLow = 14300; BuyHigh = 14800; Target = 16500; StopLoss = 13800 }
 )
 
 $nowStr = (Get-Date).ToString("yyyy-MM-dd HH:mm")
 $results = @()
 $buySignals = @()
+
+# Chờ kết nối Internet tối đa 30 giây khi máy vừa thức dậy từ chế độ Sleep
+for ($retry = 1; $retry -le 6; $retry++) {
+    if (Test-Connection -ComputerName "8.8.8.8" -Count 1 -Quiet -ErrorAction SilentlyContinue) {
+        break
+    }
+    Start-Sleep -Seconds 5
+}
 
 foreach ($item in $watchlist) {
     $t = $item.Ticker
@@ -57,35 +65,36 @@ foreach ($item in $watchlist) {
         $rsi = [math]::Round(100 - (100 / (1 + $rs)), 1)
         $volRatio = [math]::Round($vols[-1] / (($vols[-20..-1] | Measure-Object -Average).Average), 2)
 
-        $status = "CHO DIEU CHINH"
-        $icon = "[CHO]"
+        $status = "CHỜ ĐIỀU CHỈNH"
+        $icon = "⏳"
         if ($price -ge $item.BuyLow -and $price -le $item.BuyHigh) {
             if ($volRatio -ge 1.3) {
-                $status = "MUA NGAY (NO VOL)"
-                $icon = "[MUA MANH]"
+                $status = "MUA NGAY (NỔ VOL)"
+                $icon = "🚀 [MUA MẠNH]"
             } else {
-                $status = "TRONG VUNG MUA DEP"
-                $icon = "[VUNG MUA]"
+                $status = "TRONG VÙNG MUA ĐẸP"
+                $icon = "🟢 [VÙNG MUA]"
             }
-            $buySignals += "$icon *$t* ($price d | $dayPct% | RSI: $rsi | Vol: ${volRatio}x) -> Vung mua: $($item.BuyLow)-$($item.BuyHigh)"
+            $buySignals += "$icon *$t* ($price đ | $dayPct% | RSI: $rsi | Vol: ${volRatio}x) -> Vùng mua: $($item.BuyLow)-$($item.BuyHigh) đ"
         } elseif ($price -gt $item.StopLoss -and $price -lt $item.BuyLow) {
-            $status = "GIA RE HON VUNG MUA (CANH GOM)"
-            $icon = "[GOM RE]"
-            $buySignals += "$icon *$t* ($price d | $dayPct% | RSI: $rsi) -> Thap hon vung mua ($($item.BuyLow)-$($item.BuyHigh)), tren cat lo $($item.StopLoss)"
+            $status = "RẺ HƠN VÙNG MUA (CANH GOM)"
+            $icon = "💎 [GOM RẺ]"
+            $buySignals += "$icon *$t* ($price đ | $dayPct% | RSI: $rsi) -> Thấp hơn vùng mua ($($item.BuyLow)-$($item.BuyHigh) đ), trên cắt lỗ $($item.StopLoss) đ"
         } elseif ($price -le ($item.BuyHigh * 1.01) -and $price -gt $item.BuyHigh) {
-            $status = "SAT VUNG MUA (lech <= 1%)"
-            $icon = "[SAT VUNG MUA]"
-            $buySignals += "$icon *$t* ($price d | $dayPct% | RSI: $rsi | Vol: ${volRatio}x) -> Sat vung mua $($item.BuyLow)-$($item.BuyHigh)"
+            $status = "SÁT VÙNG MUA (lệch <= 1%)"
+            $icon = "🎯 [SÁT VÙNG MUA]"
+            $buySignals += "$icon *$t* ($price đ | $dayPct% | RSI: $rsi | Vol: ${volRatio}x) -> Sát vùng mua $($item.BuyLow)-$($item.BuyHigh) đ"
         } elseif ($price -ge $item.Target) {
-            $status = "CHAM CHOT LOI"
-            $icon = "[CHOT LOI]"
+            $status = "CHẠM CHỐT LỜI"
+            $icon = "💰 [CHỐT LỜI]"
         } elseif ($price -le $item.StopLoss) {
-            $status = "VI PHAM CAT LO"
-            $icon = "[CAT LO]"
+            $status = "VI PHẠM CẮT LỖ"
+            $icon = "🛑 [CẮT LỖ]"
         }
 
         $results += [PSCustomObject]@{
             Ticker   = $t
+            Sector   = $item.Sector
             Price    = $price
             DayPct   = $dayPct
             BuyZone  = "$($item.BuyLow)-$($item.BuyHigh)"
@@ -108,23 +117,23 @@ if (-not (Test-Path $reportsDir)) { New-Item -ItemType Directory -Path $reportsD
 $reportFile = Join-Path $reportsDir "latest_alert.md"
 
 $msgLines = @(
-    "*BAO CAO QUET CO PHIEU (<= 20.000d) - $nowStr*",
+    "📊 *BÁO CÁO QUÉT CỔ PHIẾU (≤ 20.000đ) - $nowStr*",
     "----------------------------------------"
 )
 if ($buySignals.Count -gt 0) {
-    $msgLines += "*CAC MA DANG O VUNG MUA / SAT VUNG MUA:*"
+    $msgLines += "*CÁC MÃ ĐANG Ở VÙNG MUA / SÁT VÙNG MUA:*"
     $msgLines += $buySignals
 } else {
-    $msgLines += "Hien chua co ma nao lot vao vung mua toi uu."
+    $msgLines += "Hiện chưa có mã nào lọt vào vùng mua tối ưu."
 }
 $msgLines += ""
-$msgLines += "*BANG TONG HOP 10 MA MUC TIEU:*"
+$msgLines += "*BẢNG TỔNG HỢP 10 MÃ MỤC TIÊU:*"
 foreach ($r in $results) {
-    $msgLines += "- *$($r.Ticker)*: $($r.Price)d ($($r.DayPct)%) | Mua: $($r.BuyZone) | RSI: $($r.RSI14) | Vol: $($r.VolRatio)x -> _$($r.Status)_"
+    $msgLines += "- *$($r.Ticker)*: $($r.Price) đ ($($r.DayPct)%) | Mua: $($r.BuyZone) đ | RSI: $($r.RSI14) | Vol: $($r.VolRatio)x -> _$($r.Status)_"
 }
 
 $fullText = $msgLines -join "`n"
-Set-Content -Path $reportFile -Value $fullText -Encoding UTF8
+[System.IO.File]::WriteAllText($reportFile, $fullText, [System.Text.Encoding]::UTF8)
 Write-Output "`nSaved report to: $reportFile"
 
 if ($botToken -and $chatId) {
@@ -145,4 +154,3 @@ if ($botToken -and $chatId) {
 } else {
     Write-Output "TELEGRAM_STATUS: Skipped (TELEGRAM_BOT_TOKEN or TELEGRAM_CHAT_ID not configured in .env yet)"
 }
-
